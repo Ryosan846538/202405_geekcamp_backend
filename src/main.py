@@ -55,7 +55,7 @@ def handle_message(event):
         print(f"User ID: {user_id}")
 
         #特定のidの時に条件分岐して返答する
-        if user_id == 'U5617c76a1a1e14c3b9dd7bf131246d52':
+        if user_id == '*****':
 
         #相手の送信した内容で条件分岐して回答を変数に代入
             if event.message.text == 'グー':
