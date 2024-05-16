@@ -1,6 +1,6 @@
 import os
 import config
-
+#import sqlite3
 from flask import Flask, abort, request
 from linebot.v3.webhook import (
     WebhookHandler
@@ -17,7 +17,8 @@ from linebot.v3.messaging import (
 )
 from linebot.v3.webhooks import (
     MessageEvent,
-    TextMessageContent
+    TextMessageContent,
+    JoinEvent
 )
 
 secret_key = config.YOUR_CHANNEL_SECRET
@@ -27,7 +28,15 @@ app = Flask(__name__)
 
 handler = WebhookHandler(secret_key)
 configuration = Configuration(access_token=access_key)
-
+'''
+#データベース接続
+def init_db():
+    with sqlite3.connect('db_name') as coon:
+        conn.cursor()
+        conn.commit()
+#アプリケーション起動時にデータベースを初期化（たぶんいらない）
+init_db()
+'''
 @app.route("/callback", methods=['POST'])
 def callback():
     # get X-Line-Signature header value
@@ -46,6 +55,34 @@ def callback():
 
     return 'OK'
 
+@handler.add(JoinEvent)
+def handle_join(event):
+    with ApiClient(configuration) as api_client:
+        # グループIDを取得
+        group_id = event.source.group_id
+        print(f"Group ID: {group_id}")
+        '''
+        #グループIDをデータベースに保存
+        with sqlite3,connect('db_name') as coon:
+            c = conn.cursor()
+            try:
+                c.execute('INSERT INTO groups (group_id) VALUES (?)', (group_id,))
+                conn.commit()
+            except sqlite3.IntegrityError:
+                #すでに存在しているならIDを無視する
+                pass
+        '''
+        # 参加時にメッセージ
+        join_message = f'ふつつかものですが、{group_id} に参加させていただきます。'
+
+        # 参加メッセージを送信
+        line_bot_api = MessagingApi(api_client)
+        line_bot_api.reply_message_with_http_info(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=join_message)]
+            )
+        )
 
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
@@ -55,8 +92,8 @@ def handle_message(event):
         print(f"User ID: {user_id}")
 
         #特定のidの時に条件分岐して返答する
-        if user_id == '*****':
-
+        if user_id == '******':
+            print(f"success")
         #相手の送信した内容で条件分岐して回答を変数に代入
             if event.message.text == 'グー':
                 msg = 'パー'
