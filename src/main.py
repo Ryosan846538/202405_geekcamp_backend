@@ -1,6 +1,6 @@
 import os
 import config
-#import sqlite3
+import json
 from flask import Flask, abort, request
 from linebot.v3.webhook import (
     WebhookHandler
@@ -24,21 +24,12 @@ from linebot.v3.webhooks import (
 
 secret_key = config.YOUR_CHANNEL_SECRET
 access_key = config.YOUR_CHANNEL_ACCESS_TOKEN
-access_sid = config.SPECIAL_ID
 
 app = Flask(__name__)
 
 handler = WebhookHandler(secret_key)
 configuration = Configuration(access_token=access_key)
-'''
-#データベース接続
-def init_db():
-    with sqlite3.connect('db_name') as coon:
-        conn.cursor()
-        conn.commit()
-#アプリケーション起動時にデータベースを初期化（たぶんいらない）
-init_db()
-'''
+
 @app.route("/callback", methods=['POST'])
 def callback():
     # get X-Line-Signature header value
@@ -63,17 +54,8 @@ def handle_join(event):
         # グループIDを取得
         group_id = event.source.group_id
         print(f"Group ID: {group_id}")
-        '''
-        #グループIDをデータベースに保存
-        with sqlite3,connect('db_name') as coon:
-            c = conn.cursor()
-            try:
-                c.execute('INSERT INTO groups (group_id) VALUES (?)', (group_id,))
-                conn.commit()
-            except sqlite3.IntegrityError:
-                #すでに存在しているならIDを無視する
-                pass
-        '''
+        #json形式に変換
+        group_data = json.dumps({'group_id': group_id})
         # 参加時にメッセージ
         join_message = f'{group_id} に参加しました'
 
@@ -89,9 +71,6 @@ def handle_join(event):
 @handler.add(MemberJoinedEvent)
 def handle_member_join(event):
     with ApiClient(configuration) as api_client:
-        # ユーザーIDを取得
-        user_id = event.source.user_id
-        print(f"User ID: {user_id}")
         # 参加した人にメッセージ送信
         join_message = f'参加ありがとう！\n'\
                         '自分の目標を立ててみんなで達成しよう！！\n'\
@@ -120,10 +99,38 @@ def handle_message(event):
         # ユーザーIDを取得
         user_id = event.source.user_id
         print(f"User ID: {user_id}")
-
         #メッセージテキストを取得
         text = event.message.text
         print(f"Received message: {text}")
+
+        # 各フィールドを抽出
+        name = extract_message(text, '名前：')
+        goal = extract_message(text, '目標：')
+        description = extract_message(text, '説明：')
+        deadline = extract_message(text, '期限：')
+
+        # 抽出結果を確認
+        print(f"Extracted name: {name}")
+        print(f"Extracted goal: {goal}")
+        print(f"Extracted description: {description}")
+        print(f"Extracted deadline: {deadline}")
+
+        # データベースに格納するJSONデータを作成
+        message_data = {
+            'user_id': user_id,
+            'name': name,
+            'goal': goal,
+            'description': description,
+            'deadline': deadline
+        }
+        message_json = json.dumps(message_data)
+
+        # メッセージの内容に基づいてレスポンスを作成
+        if name and goal and description and deadline:
+            msg = f"名前: {name}\n目標: {goal}\n説明: {description}\n期限: {deadline}"
+        else:
+            msg = 'うっわぁ～♥テンプレートあるのに出来ないとかザッコ～♥\n名前、目標、説明、期限を書いてって言ってるのにできないとか恥ずかしくないの～?♥\n'
+        '''
         #「名前：」というメッセージが存在しているかチェック
         if '名前：' in text:
             # 「名前：」の次に続く文字列を抽出
@@ -135,6 +142,7 @@ def handle_message(event):
                 msg = '名前が指定されたメッセージの次の行が見つかりませんでした。'
         else:
             msg = 'そんなこと言わないで目標に向かって頑張ろう！！'
+        '''
         line_bot_api = MessagingApi(api_client)
         line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
@@ -142,6 +150,12 @@ def handle_message(event):
                 messages=[TextMessage(text=msg)]
             )
         )
+
+def extract_message(text, field_name):
+    try:
+        return text.split(field_name)[1].split('\n')[0].strip()
+    except IndexError:
+        return None
 
 
 if __name__ == "__main__":
