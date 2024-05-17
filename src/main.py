@@ -18,11 +18,13 @@ from linebot.v3.messaging import (
 from linebot.v3.webhooks import (
     MessageEvent,
     TextMessageContent,
-    JoinEvent
+    JoinEvent,
+    MemberJoinedEvent
 )
 
 secret_key = config.YOUR_CHANNEL_SECRET
 access_key = config.YOUR_CHANNEL_ACCESS_TOKEN
+access_sid = config.SPECIAL_ID
 
 app = Flask(__name__)
 
@@ -73,7 +75,35 @@ def handle_join(event):
                 pass
         '''
         # 参加時にメッセージ
-        join_message = f'ふつつかものですが、{group_id} に参加させていただきます。'
+        join_message = f'{group_id} に参加しました'
+
+        # 参加メッセージを送信
+        line_bot_api = MessagingApi(api_client)
+        line_bot_api.reply_message_with_http_info(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=join_message)]
+            )
+        )
+
+@handler.add(MemberJoinedEvent)
+def handle_member_join(event):
+    with ApiClient(configuration) as api_client:
+        # ユーザーIDを取得
+        user_id = event.source.user_id
+        print(f"User ID: {user_id}")
+        # 参加した人にメッセージ送信
+        join_message = f'参加ありがとう！\n'\
+                        '自分の目標を立ててみんなで達成しよう！！\n'\
+                        '※以下のテンプレートに従って目標を宣言してください\n'\
+                        '------------------\n'\
+                        '名前：自分のなまえ\n'\
+                        '目標：あなたの目標\n'\
+                        '説明：あなたが達成したい目標の説明\n'\
+                        '期限：あなたが目標を達成する期限\n'\
+                        '------------------\n'\
+                        '\n'\
+                        'さあ、みんなで頑張ろう！！\n'\
 
         # 参加メッセージを送信
         line_bot_api = MessagingApi(api_client)
@@ -91,21 +121,20 @@ def handle_message(event):
         user_id = event.source.user_id
         print(f"User ID: {user_id}")
 
-        #特定のidの時に条件分岐して返答する
-        if user_id == '******':
-            print(f"success")
-        #相手の送信した内容で条件分岐して回答を変数に代入
-            if event.message.text == 'グー':
-                msg = 'パー'
-            elif event.message.text == 'チョキ':
-                msg = 'グー'
-            elif event.message.text == 'パー':
-                msg = 'チョキ'
-            else:
-                msg = 'ごめんね。\nまだ他のメッセージには対応してないよ'
+        #メッセージテキストを取得
+        text = event.message.text
+        print(f"Received message: {text}")
+        #「名前：」というメッセージが存在しているかチェック
+        if '名前：' in text:
+            # 「名前：」の次に続く文字列を抽出
+            try:
+                name = text.split('名前：')[1].strip()
+                print(f"Extracted name: {name}")
+                msg = f"名前を取得しました：{name}"
+            except IndexError:
+                msg = '名前が指定されたメッセージの次の行が見つかりませんでした。'
         else:
-            msg = 'お前は誰だ'
-
+            msg = 'そんなこと言わないで目標に向かって頑張ろう！！'
         line_bot_api = MessagingApi(api_client)
         line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
