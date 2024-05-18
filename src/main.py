@@ -107,13 +107,10 @@ def handle_message(event):
         name = extract_message(text, '名前：')
         description = extract_message(text, '目標：')
         deadline = extract_message(text, '期限：')
+        today = datetime.today().date()
+        today_date = today.strftime('%Y-%m-%d')
 
-        # 抽出結果を確認
-        print(f"Extracted name: {name}")
-        print(f"Extracted description: {description}")
-        print(f"Extracted deadline (string): {deadline}")
-
-        #期限をiso形式に変換
+        #期限を日付だけ表示
         deadline_date = None
         try:
             deadline_date = datetime.strptime(deadline, '%Y-%m-%d').date()
@@ -123,11 +120,18 @@ def handle_message(event):
             deadline = None
             print(f"Failed to parse deadline: {deadline}")
 
+        # 抽出結果を確認
+        print(f"Extracted name: {name}")
+        print(f"Extracted description: {description}")
+        print(f"Extracted today: {today_date}")
+        print(f"Extracted deadline: {deadline}")
+
         # データベースに格納するJSONデータを作成
         message_data = {
             'user_id': user_id,
             'name': name,
             'description': description,
+            'start': today_date,
             'deadline': deadline
         }
         message_json = json.dumps(message_data)
