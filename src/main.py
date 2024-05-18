@@ -1,5 +1,6 @@
 import os
 import config
+import sqlite3
 from flask import Flask, abort, request, jsonify
 from datetime import datetime
 from linebot.v3.webhook import (
@@ -21,6 +22,7 @@ from linebot.v3.webhooks import (
     JoinEvent,
     MemberJoinedEvent
 )
+#from db import get_db_connection
 #from init import register_blueprints
 #from goals import create_goal
 #from groups import create_group
@@ -52,6 +54,8 @@ def callback():
         abort(400)
 
     return 'OK'
+
+
 
 @handler.add(JoinEvent)
 def handle_join(event):
@@ -88,7 +92,7 @@ def handle_member_join(event):
                         '\n'\
                         'さあ、みんなで頑張ろう！！\n'\
 
-        # 参加メッセージを送信
+        # メッセージを送信
         line_bot_api = MessagingApi(api_client)
         line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
@@ -116,13 +120,14 @@ def handle_message(event):
 
         #期限を日付だけ表示
         deadline_date = None
-        try:
-            deadline_date = datetime.strptime(deadline, '%Y-%m-%d').date()
-            deadline = deadline_date.strftime('%Y-%m-%d')
-            print(f"deadline (date): {deadline}")
-        except ValueError:
-            deadline = None
-            print(f"Failed to parse deadline: {deadline}")
+        if deadline:
+            try:
+                deadline_date = datetime.strptime(deadline, '%Y-%m-%d').date()
+                deadline = deadline_date.strftime('%Y-%m-%d')
+                print(f"deadline (date): {deadline}")
+            except ValueError:
+                deadline = None
+                print(f"Failed to parse deadline: {deadline}")
 
         # 抽出結果を確認
         print(f"Extracted name: {name}")
@@ -148,6 +153,7 @@ def handle_message(event):
             msg =  f'うっわぁ～♥テンプレートあるのに出来ないとかザッコ～♥\n'\
                     '名前、目標、期限を書いてって言ってるのにできないとか恥ずかしくないの～?♥\n'\
 
+        # メッセージを送信
         line_bot_api = MessagingApi(api_client)
         line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
