@@ -2,6 +2,7 @@ import os
 import config
 import json
 from flask import Flask, abort, request
+from datetime import datetime
 from linebot.v3.webhook import (
     WebhookHandler
 )
@@ -78,8 +79,7 @@ def handle_member_join(event):
                         '------------------\n'\
                         '名前：自分のなまえ\n'\
                         '目標：あなたの目標\n'\
-                        '説明：あなたが達成したい目標の説明\n'\
-                        '期限：あなたが目標を達成する期限\n'\
+                        '期限：あなたが目標を達成する期限ex.(2024-12-31)\n'\
                         '------------------\n'\
                         '\n'\
                         'さあ、みんなで頑張ろう！！\n'\
@@ -105,44 +105,40 @@ def handle_message(event):
 
         # 各フィールドを抽出
         name = extract_message(text, '名前：')
-        goal = extract_message(text, '目標：')
-        description = extract_message(text, '説明：')
+        description = extract_message(text, '目標：')
         deadline = extract_message(text, '期限：')
 
         # 抽出結果を確認
         print(f"Extracted name: {name}")
-        print(f"Extracted goal: {goal}")
         print(f"Extracted description: {description}")
-        print(f"Extracted deadline: {deadline}")
+        print(f"Extracted deadline (string): {deadline}")
+
+        #期限をiso形式に変換
+        deadline_date = None
+        try:
+            deadline_date = datetime.strptime(deadline, '%Y-%m-%d').date()
+            deadline = deadline_date.strftime('%Y-%m-%d')
+            print(f"deadline (date): {deadline}")
+        except ValueError:
+            deadline = None
+            print(f"Failed to parse deadline: {deadline}")
 
         # データベースに格納するJSONデータを作成
         message_data = {
             'user_id': user_id,
             'name': name,
-            'goal': goal,
             'description': description,
             'deadline': deadline
         }
         message_json = json.dumps(message_data)
 
         # メッセージの内容に基づいてレスポンスを作成
-        if name and goal and description and deadline:
-            msg = f"名前: {name}\n目標: {goal}\n説明: {description}\n期限: {deadline}"
+        if name and description and deadline:
+            msg = f"名前: {name}\n目標: {description}\n期限: {deadline}"
         else:
-            msg = 'うっわぁ～♥テンプレートあるのに出来ないとかザッコ～♥\n名前、目標、説明、期限を書いてって言ってるのにできないとか恥ずかしくないの～?♥\n'
-        '''
-        #「名前：」というメッセージが存在しているかチェック
-        if '名前：' in text:
-            # 「名前：」の次に続く文字列を抽出
-            try:
-                name = text.split('名前：')[1].strip()
-                print(f"Extracted name: {name}")
-                msg = f"名前を取得しました：{name}"
-            except IndexError:
-                msg = '名前が指定されたメッセージの次の行が見つかりませんでした。'
-        else:
-            msg = 'そんなこと言わないで目標に向かって頑張ろう！！'
-        '''
+            msg =  f'うっわぁ～♥テンプレートあるのに出来ないとかザッコ～♥\n'\
+                    '名前、目標、期限を書いてって言ってるのにできないとか恥ずかしくないの～?♥\n'\
+
         line_bot_api = MessagingApi(api_client)
         line_bot_api.reply_message_with_http_info(
             ReplyMessageRequest(
