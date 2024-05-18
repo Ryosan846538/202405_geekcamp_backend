@@ -1,7 +1,6 @@
 import os
 import config
-import json
-from flask import Flask, abort, request
+from flask import Flask, abort, request, jsonify
 from datetime import datetime
 from linebot.v3.webhook import (
     WebhookHandler
@@ -22,6 +21,11 @@ from linebot.v3.webhooks import (
     JoinEvent,
     MemberJoinedEvent
 )
+#from init import register_blueprints
+#from goals import create_goal
+#from groups import create_group
+#from status import create_status
+#from user import user
 
 secret_key = config.YOUR_CHANNEL_SECRET
 access_key = config.YOUR_CHANNEL_ACCESS_TOKEN
@@ -55,8 +59,6 @@ def handle_join(event):
         # グループIDを取得
         group_id = event.source.group_id
         print(f"Group ID: {group_id}")
-        #json形式に変換
-        group_data = json.dumps({'group_id': group_id})
         # 参加時にメッセージ
         join_message = f'{group_id} に参加しました'
 
@@ -68,6 +70,8 @@ def handle_join(event):
                 messages=[TextMessage(text=join_message)]
             )
         )
+    #json形式に変換
+        group_data = jsonify({'group_id': group_id})
 
 @handler.add(MemberJoinedEvent)
 def handle_member_join(event):
@@ -134,7 +138,8 @@ def handle_message(event):
             'start': today_date,
             'deadline': deadline
         }
-        message_json = json.dumps(message_data)
+        user_data = jsonify({'user_id': user_id})
+        message_json = jsonify(message_data)
 
         # メッセージの内容に基づいてレスポンスを作成
         if name and description and deadline:
