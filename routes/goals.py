@@ -9,7 +9,7 @@ def create_goal():
     goal_id = data['goal_id']
     user_id = data['user_id']
     description = data['description']
-    start_date = data['start_date']
+    start_date = datetime.now()
     end_date = data['end_date']
     created_at = datetime.now()
     updated_at = datetime.now()
