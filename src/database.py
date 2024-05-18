@@ -13,7 +13,7 @@ class Goal(db.Model):
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(200), nullable=False)
     start = db.Column(db.String(20), nullable=False)
-    deadline = db.Column(db.String(20), nullable=True)
+    deadline = db.Column(db.String(20), nullable=False)
 
     def __repr__(self):
         return f'<Goal id={self.id} user_id={self.user_id} name={self.name} description={self.description} start={self.start} deadline={self.deadline}>'
