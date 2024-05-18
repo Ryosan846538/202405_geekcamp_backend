@@ -1,6 +1,5 @@
 import os
 import config
-import sqlite3
 from flask import Flask, abort, request, jsonify
 from datetime import datetime
 from linebot.v3.webhook import (
@@ -22,17 +21,20 @@ from linebot.v3.webhooks import (
     JoinEvent,
     MemberJoinedEvent
 )
-#from db import get_db_connection
-#from init import register_blueprints
-#from goals import create_goal
-#from groups import create_group
-#from status import create_status
-#from user import user
+from database import (
+    db,
+    Goal,
+    app as app_db
+)
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///goals.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
 
 secret_key = config.YOUR_CHANNEL_SECRET
 access_key = config.YOUR_CHANNEL_ACCESS_TOKEN
-
-app = Flask(__name__)
 
 handler = WebhookHandler(secret_key)
 configuration = Configuration(access_token=access_key)
@@ -56,7 +58,6 @@ def callback():
     return 'OK'
 
 
-
 @handler.add(JoinEvent)
 def handle_join(event):
     with ApiClient(configuration) as api_client:
@@ -74,8 +75,6 @@ def handle_join(event):
                 messages=[TextMessage(text=join_message)]
             )
         )
-    #json形式に変換
-        group_data = jsonify({'group_id': group_id})
 
 @handler.add(MemberJoinedEvent)
 def handle_member_join(event):
@@ -143,8 +142,15 @@ def handle_message(event):
             'start': today_date,
             'deadline': deadline
         }
-        user_data = jsonify({'user_id': user_id})
-        message_json = jsonify(message_data)
+        
+        new_goal = Goal(**message_data)
+        db.session.add(new_goal)
+        db.session.commit()
+
+        # データベースから全ての目標を取得し、出力
+        goals = Goal.query.all()
+        for goal in goals:
+            print(goal)
 
         # メッセージの内容に基づいてレスポンスを作成
         if name and description and deadline:
@@ -170,5 +176,7 @@ def extract_message(text, field_name):
 
 
 if __name__ == "__main__":
+    with app_db.app_context():
+        db.create_all()
     port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
