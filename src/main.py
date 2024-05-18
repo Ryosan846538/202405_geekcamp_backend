@@ -24,10 +24,13 @@ from linebot.v3.webhooks import (
 from database import (
     db,
     Goal,
-    app as app_db
+    app as app_db,
+    get_goals
 )
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///goals.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -57,6 +60,23 @@ def callback():
 
     return 'OK'
 
+@app.route("/goals", methods=['GET'])
+def goals():
+    try:
+        goals = get_goals()
+        goals_list = [{
+            "id": goal.id,
+            "user_id": goal.user_id,
+            "name": goal.name,
+            "description": goal.description,
+            "start_date": goal.start_date,
+            "deadline_date": goal.deadline_date,
+            # "created_at": goal.created_at
+        } for goal in goals]
+        return jsonify(goals_list)
+    except Exception as e:
+        print(e)
+        abort(500)
 
 @handler.add(JoinEvent)
 def handle_join(event):
@@ -119,28 +139,31 @@ def handle_message(event):
 
         #期限を日付だけ表示
         deadline_date = None
-        if deadline:
-            try:
+        try:
+            if deadline:
                 deadline_date = datetime.strptime(deadline, '%Y-%m-%d').date()
                 deadline = deadline_date.strftime('%Y-%m-%d')
-                print(f"deadline (date): {deadline}")
-            except ValueError:
+                print(f"deadline_date (date): {deadline}")
+            else:
                 deadline = None
                 print(f"Failed to parse deadline: {deadline}")
+        except ValueError:
+            deadline = None
+            print(f"Failed to parse deadline: {deadline}")
 
         # 抽出結果を確認
         print(f"Extracted name: {name}")
         print(f"Extracted description: {description}")
         print(f"Extracted today: {today_date}")
-        print(f"Extracted deadline: {deadline}")
+        print(f"Extracted deadline_date: {deadline_date}")
 
         # データベースに格納するJSONデータを作成
         message_data = {
             'user_id': user_id,
             'name': name,
             'description': description,
-            'start': today_date,
-            'deadline': deadline
+            'start_date': today_date,
+            'deadline_date': deadline_date
         }
         
         new_goal = Goal(**message_data)
@@ -153,8 +176,8 @@ def handle_message(event):
             print(goal)
 
         # メッセージの内容に基づいてレスポンスを作成
-        if name and description and deadline:
-            msg = f"名前: {name}\n目標: {description}\n期限: {deadline}"
+        if name and description and deadline_date:
+            msg = f"名前: {name}\n目標: {description}\n期限: {deadline_date}"
         else:
             msg =  f'うっわぁ～♥テンプレートあるのに出来ないとかザッコ～♥\n'\
                     '名前、目標、期限を書いてって言ってるのにできないとか恥ずかしくないの～?♥\n'\
