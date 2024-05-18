@@ -176,8 +176,8 @@ def handle_message(event):
             print(goal)
 
         # メッセージの内容に基づいてレスポンスを作成
-        if name and description and deadline_date:
-            msg = f"名前: {name}\n目標: {description}\n期限: {deadline_date}"
+        if name and description and deadline:
+            msg = f"名前: {name}\n目標: {description}\n期限: {deadline}"
         else:
             msg =  f'うっわぁ～♥テンプレートあるのに出来ないとかザッコ～♥\n'\
                     '名前、目標、期限を書いてって言ってるのにできないとか恥ずかしくないの～?♥\n'\
@@ -201,5 +201,5 @@ def extract_message(text, field_name):
 if __name__ == "__main__":
     with app_db.app_context():
         db.create_all()
-    port = int(os.getenv("PORT", 80))
+    port = int(os.getenv("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
