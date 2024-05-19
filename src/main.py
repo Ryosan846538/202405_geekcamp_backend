@@ -24,8 +24,10 @@ from linebot.v3.webhooks import (
 from database import (
     db,
     Goal,
+    Group,
     app as app_db,
-    get_goals
+    insert_goal,
+    get_groups_with_goals
 )
 from flask_cors import CORS
 
@@ -63,7 +65,8 @@ def callback():
 @app.route("/goals", methods=['GET'])
 def goals():
     try:
-        goals = get_goals()
+        groups = get_groups_with_goals()
+        goals = get_goals(group_id)
         goals_list = [{
             "id": goal.id,
             "user_id": goal.user_id,
@@ -84,9 +87,15 @@ def handle_join(event):
         # グループIDを取得
         group_id = event.source.group_id
         print(f"Group ID: {group_id}")
+
+        group = Group.query.filter_by(group_id=group_id).first()
+        if not group:
+            group = Group(group_id=group_id)
+            db.session.add(group)
+            db.session.commit()
+
         # 参加時にメッセージ
         join_message = f'{group_id} に参加しました'
-
         # 参加メッセージを送信
         line_bot_api = MessagingApi(api_client)
         line_bot_api.reply_message_with_http_info(
@@ -123,6 +132,9 @@ def handle_member_join(event):
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     with ApiClient(configuration) as api_client:
+        # グループIDを取得
+        group_id = event.source.group_id
+        print(f"Group ID: {group_id}")
         # ユーザーIDを取得
         user_id = event.source.user_id
         print(f"User ID: {user_id}")
@@ -163,12 +175,11 @@ def handle_message(event):
             'name': name,
             'description': description,
             'start_date': today_date,
-            'deadline_date': deadline_date
+            'deadline_date': deadline_date,
+            'group_id':group_id
         }
-        
-        new_goal = Goal(**message_data)
-        db.session.add(new_goal)
-        db.session.commit()
+
+        insert_goal(message_data)
 
         # データベースから全ての目標を取得し、出力
         goals = Goal.query.all()
