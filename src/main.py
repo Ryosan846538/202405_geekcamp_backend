@@ -66,16 +66,18 @@ def callback():
 def goals():
     try:
         groups = get_groups_with_goals()
-        goals = get_goals(group_id)
         goals_list = [{
-            "id": goal.id,
-            "user_id": goal.user_id,
-            "name": goal.name,
-            "description": goal.description,
-            "start_date": goal.start_date,
-            "deadline_date": goal.deadline_date,
-            # "created_at": goal.created_at
-        } for goal in goals]
+            "group_id": group.group_id,
+            "goals":[{
+                "id": goal.id,
+                "user_id": goal.user_id,
+                "name": goal.name,
+                "description": goal.description,
+                "start_date": goal.start_date,
+                "deadline_date": goal.deadline_date,
+                # "created_at": goal.created_at
+            }for goal in group.goals]
+        } for group in groups]
         return jsonify(goals_list)
     except Exception as e:
         print(e)
