@@ -25,7 +25,8 @@ from database import (
     db,
     Goal,
     app as app_db,
-    get_goals
+    get_goals,
+    get_personal_goals
 )
 from flask_cors import CORS
 
@@ -65,13 +66,30 @@ def goals():
     try:
         goals = get_goals()
         goals_list = [{
-            "id": goal.id,
-            "user_id": goal.user_id,
             "name": goal.name,
             "description": goal.description,
             "start_date": goal.start_date,
             "deadline_date": goal.deadline_date,
-            # "created_at": goal.created_at
+        } for goal in goals]
+        print(goals_list)
+        return jsonify(goals_list)
+    except Exception as e:
+        print(e)
+        abort(500)
+
+@app.route("/user_goals", methods=['GET'])
+def get_user_goals():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'User ID is required'}), 400
+    
+    try:
+        get_personal_goals(user_id)
+        goals_list = [{
+            'name': goal.name,
+            'description': goal.description,
+            'start_date': goal.start_date,
+            'deadline_date': goal.deadline_date
         } for goal in goals]
         return jsonify(goals_list)
     except Exception as e:

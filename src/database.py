@@ -37,9 +37,8 @@ def insert_goal(goal_data):
 def get_goals():
     return Goal.query.all()
 
-# def get_db():
-#     conn = sqlite3.connect('database.db')
-#     return conn
+def get_personal_goals(user_id):
+    return Goal.query.filter_by(user_id=user_id).all()
 
 if __name__ == "__main__":
     with app.app_context():
